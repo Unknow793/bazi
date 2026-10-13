@@ -445,7 +445,8 @@
   //       生边一端弱 → 判"断"（灰虚线），否则"通"。
   //   · 克线（内五角，5 条）：克对(A克B)，中神 C=SHENG[A]（且 SHENG[C]===B）。N_C<T×TONGGUAN_SHARE
   //       → "相战"（红）；否则"通关"（木之气经 C 转生 B，克被化解）。
-  //   · 流通分 score=通畅生边数/5×100。
+  //   · 流通分 score=100·（未断边流量之和）/T  ← 乙方案：不封顶·断链清零（强边全额计、断边归零）。
+  //       与"数通/断边数"不同：反映**流量大小**。由 Σmin ≤ T 知 0≤score≤100，全平命局取 100。
   // ════════════════════════════════════════════════════════════
   function layerL5(pillars, baseName, baseVals, opts) {
     opts = opts || {};
@@ -479,7 +480,9 @@
     const tongguan = ke.filter((k) => k.through);
     const xiangzhan = ke.filter((k) => !k.through);
     const tongCount = sheng.filter((s) => s.state === '通').length;
-    const score = Math.round(tongCount / 5 * 100);
+    // 流通分（乙方案）：未断边的流量之和 / 总量 ×100。不封顶——强边全额计入；断边记 0。
+    const openFlow = sheng.reduce((a, s) => a + (s.state === '通' ? s.flow : 0), 0);
+    const score = Math.round(openFlow / T * 100);
 
     const nodes = {};
     WUXING_ORDER.forEach((e) => { nodes[e] = { val: N[e], pct: T ? N[e] / T * 100 : 0, weak: weak[e] }; });

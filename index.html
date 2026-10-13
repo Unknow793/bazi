@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>八字定量</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5a4632">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="八字定量">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <style>
+        :root {
+            --bg: #fdf8f0;
+            --card-bg: #fffef9;
+            --text: #3d2b1f;
+            --text-light: #7a6a5c;
+            --primary: #5a4632;
+            --accent: #c9a96e;
+            --accent-light: #f0e6d2;
+            --border: #d4c5b2;
+            --error: #c0392b;
+            --shadow: 0 2px 16px rgba(61, 43, 31, 0.08);
+            --mu: #4a8f4a; --huo: #c0392b; --tu: #7a4a1e; --jin: #d4a017; --shui: #2e6fb0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Songti SC", "STSong", "SimSun", "宋体", "KaiTi", "楷体", serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            padding: 16px 16px 40px;
+        }
+
+        .container { width: 100%; max-width: 640px; }
+
+        header { text-align: center; padding: 20px 0 14px; }
+        header h1 { font-size: 2.1em; color: var(--primary); letter-spacing: 0.18em; font-weight: 700; }
+        .subtitle { margin-top: 6px; color: var(--text-light); font-size: 0.85em; letter-spacing: 0.08em; }
+
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 10px; padding: 18px 16px; box-shadow: var(--shadow); margin-bottom: 16px;
+        }
+
+        .field { margin-bottom: 12px; }
+        .field label { display: block; margin-bottom: 4px; color: var(--text-light); font-size: 0.85em; }
+        .field input, .field select {
+            width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 1em; font-family: inherit; background: var(--bg); color: var(--text);
+        }
+        .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+        .row2 { display: flex; gap: 10px; }
+        .row2 > * { flex: 1; min-width: 0; }
+
+        .switch { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+        .switch input { width: 18px; height: 18px; accent-color: var(--primary); }
+        .switch label { font-size: 0.92em; }
+        .switch .hint { color: var(--text-light); font-size: 0.78em; }
+
+        .btn-group { display: flex; gap: 12px; }
+        .btn-group > * { min-width: 0; }
+        .btn-primary {
+            flex: 1; background: var(--primary); color: #fff; border: none;
+            padding: 12px 18px; font-size: 1.05em; font-family: inherit; letter-spacing: 0.08em;
+            border-radius: 6px; cursor: pointer; transition: filter 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover { filter: brightness(1.12); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-secondary {
+            background: transparent; color: var(--text-light); border: 1px solid var(--border);
+            padding: 12px 18px; font-size: 1.05em; font-family: inherit; border-radius: 6px; cursor: pointer;
+        }
+        .btn-secondary:hover { background: var(--accent-light); }
+
+        .seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .seg-btn {
+            flex: 1; min-width: 0; padding: 9px 8px; font-family: inherit; font-size: 0.92em;
+            background: var(--bg); color: var(--text-light); border: none; border-right: 1px solid var(--border); cursor: pointer;
+        }
+        .seg-btn:last-child { border-right: none; }
+        .seg-btn.active { background: var(--primary); color: #fff; }
+        .seg-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+        .layer-tag { font-size: 0.68em; font-weight: 400; color: var(--text-light); letter-spacing: 0.04em; }
+
+        .p4rel { margin-top: 4px; display: flex; flex-direction: column; gap: 1px; }
+        .p4rel span { font-size: 0.64em; color: var(--text-light); letter-spacing: 0.02em; }
+        .rel-group { margin-bottom: 7px; }
+        .rel-kind { font-weight: 700; color: var(--primary); font-size: 0.9em; margin-bottom: 2px; }
+        .rel-item { font-size: 0.84em; line-height: 1.75; }
+        .rel-item .d { color: var(--text-light); font-size: 0.85em; }
+        .rel-item .hx { color: var(--error); }
+        .rel-item .ok { color: var(--mu); }
+        .gw-table { width: 100%; border-collapse: collapse; font-size: 0.76em; margin-top: 2px; }
+        .gw-table td, .gw-table th { border: 1px solid var(--border); padding: 3px 4px; text-align: center; }
+        .gw-table th { background: var(--accent-light); color: var(--primary); font-weight: 700; }
+
+        .ring-wrap { max-width: 300px; margin: 2px auto 4px; }
+        .ring-wrap svg { width: 100%; height: auto; display: block; }
+        .ring-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            font-size: 0.74em; color: var(--text-light); margin: 4px 0 8px; }
+        .ring-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+        .flow-list { font-size: 0.82em; line-height: 1.7; }
+        .flow-list .b { color: var(--error); }
+        .flow-list .ok { color: var(--mu); }
+
+        #result { min-height: 80px; }
+        .placeholder { text-align: center; color: var(--text-light); padding: 40px 0; letter-spacing: 0.06em; }
+
+        .pillars4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 10px; }
+        .p4col { text-align: center; padding: 8px 2px 6px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
+        .p4col.day { background: var(--accent-light); border-color: var(--accent); }
+        .p4name { font-size: 0.72em; color: var(--text-light); letter-spacing: 0.08em; margin-bottom: 3px; }
+        .p4gan, .p4zhi { font-size: 1.75em; font-weight: 700; line-height: 1.2; }
+        .p4cang { margin-top: 5px; border-top: 1px dashed var(--border); padding-top: 4px; display: flex; flex-direction: column; gap: 1px; }
+        .p4cang span { font-size: 0.74em; }
+        .p4cang .w { font-size: 0.82em; font-style: normal; opacity: 0.65; margin-left: 1px; }
+        .meta { text-align: center; color: var(--text-light); font-size: 0.85em; margin-bottom: 4px; }
+        .siling { text-align: center; background: var(--accent-light); border-radius: 6px; padding: 6px 10px; margin: 10px 0; font-size: 0.92em; color: var(--primary); }
+        .siling b { color: var(--error); }
+
+        h3.section { font-size: 1.05em; color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; margin: 16px 0 10px; }
+
+        .bar-row { display: grid; grid-template-columns: 2.2em 3.6em 3.2em 1fr; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.92em; }
+        .bar-row .name { font-weight: 700; }
+        .bar-row .val { text-align: right; color: var(--text-light); font-variant-numeric: tabular-nums; }
+        .bar-track { background: var(--accent-light); border-radius: 4px; height: 14px; overflow: hidden; }
+        .bar-fill { display: block; height: 100%; border-radius: 4px; }
+
+        .n-mu { color: var(--mu); } .n-huo { color: var(--huo); } .n-tu { color: var(--tu); }
+        .n-jin { color: var(--jin); } .n-shui { color: var(--shui); }
+
+        .foot { text-align: center; color: var(--text-light); font-size: 0.76em; margin-top: 18px; line-height: 1.7; }
+
+        @media (max-width: 480px) {
+            header h1 { font-size: 1.7em; }
+            .p4gan, .p4zhi { font-size: 1.5em; }
+            .p4cang span { font-size: 0.68em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>八字定量</h1>
+            <p class="subtitle">旺衰:李洪成 · 藏干:渊海子平 · 含司令层/刑冲合害/流通</p>
+        </header>
+
+        <div class="card">
+            <div class="row2">
+                <div class="field">
+                    <label for="date">出生日期（阳历）</label>
+                    <input type="date" id="date">
+                </div>
+                <div class="field">
+                    <label for="time">出生时间</label>
+                    <input type="time" id="time" value="12:00">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="sect">子时换日（23:00–23:59）</label>
+                <select id="sect">
+                    <option value="2">日柱算当日（默认，时柱按次日起）</option>
+                    <option value="1">晚子时日柱算次日（主流）</option>
+                </select>
+            </div>
+
+            <div class="row2">
+                <div class="field">
+                    <label for="provSel">出生地 · 省</label>
+                    <select id="provSel"><option value="">（可选）</option></select>
+                </div>
+                <div class="field">
+                    <label for="citySel">市 / 区</label>
+                    <select id="citySel"><option value="">—</option></select>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="lon">东经度数（选省市自动填入，可手改覆盖；空＝不校正）</label>
+                <input type="number" id="lon" step="0.01" placeholder="如 113.63">
+            </div>
+
+            <div class="switch">
+                <input type="checkbox" id="sishiToggle" checked>
+                <div>
+                    <label for="sishiToggle">司令层（月令按司事日数赋权）</label>
+                    <div class="hint">关＝月令用渊海子平长生版（可复现李洪成原值）</div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>数值层级（各层数值独立保留）</label>
+                <div class="seg" id="layerSeg">
+                    <button type="button" class="seg-btn" data-layer="L2">L2 旺衰</button>
+                    <button type="button" class="seg-btn" data-layer="L3">L3 司令</button>
+                    <button type="button" class="seg-btn" data-layer="L4">L4 修正</button>
+                </div>
+            </div>
+
+            <div class="switch">
+                <input type="checkbox" id="l4Toggle">
+                <div>
+                    <label for="l4Toggle">L4 刑冲合害：参与数值修正</label>
+                    <div class="hint">默认只标注；勾选后本层修正五行/十神（浅层数值仍保留）</div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button id="btn-calc" class="btn-primary">排盘计算</button>
+                <button id="btn-now" class="btn-secondary">现在</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div id="result" class="placeholder">填入出生时间，点"排盘计算"</div>
+        </div>
+
+        <div class="foot" id="foot"></div>
+    </div>
+
+    <script src="lunar.js"></script>
+    <script src="bazi_params.js"></script>
+    <script src="cities.js"></script>
+    <script src="bazi_engine.js"></script>
+    <script>
+    (function () {
+        const WUXING_ORDER = Bazi.WUXING_ORDER;
+        const WX_CLASS = { '木': 'n-mu', '火': 'n-huo', '土': 'n-tu', '金': 'n-jin', '水': 'n-shui' };
+        const WX_COLOR = { '木': 'var(--mu)', '火': 'var(--huo)', '土': 'var(--tu)', '金': 'var(--jin)', '水': 'var(--shui)' };
+        const WX_HEX = { '木': '#4a8f4a', '火': '#c0392b', '土': '#7a4a1e', '金': '#d4a017', '水': '#2e6fb0' };
+        const TONG_GREEN = '#3a9d5d', ZHAN_RED = '#c0392b';
+
+        const $ = (id) => document.getElementById(id);
+        const dateEl = $('date'), timeEl = $('time'), sectEl = $('sect'), lonEl = $('lon'), sishiEl = $('sishiToggle');
+        const resultEl = $('result'), footEl = $('foot'), layerSeg = $('layerSeg'), l4El = $('l4Toggle');
+        const provSel = $('provSel'), citySel = $('citySel');
+        let viewLayer = 'L2';   // 当前查看的层（L2 / L3 / L4）
+
+        function updateLayerBtns() {
+            const st = window.__last && window.__last.st;
+            const hasL3 = !!(st && st.L3);
+            const hasL4 = !!(st && st.L4 && st.L4.apply);
+            Array.prototype.forEach.call(layerSeg.querySelectorAll('.seg-btn'), (b) => {
+                const l = b.dataset.layer;
+                if (l === 'L3') b.disabled = !hasL3;
+                if (l === 'L4') b.disabled = !hasL4;
+                b.classList.toggle('active', l === viewLayer);
+            });
+        }
+
+        // 默认日期 = 今天
+        const today = new Date();
+        dateEl.value = today.getFullYear() + '-' +
+            String(today.getMonth() + 1).padStart(2, '0') + '-' +
+            String(today.getDate()).padStart(2, '0');
+
+        // 出生地：省 → 市，选市后自动把经度填入 lon（可手改覆盖）
+        (function initGeo() {
+            const G = (typeof CITY_GEO !== 'undefined') ? CITY_GEO : null;
+            if (!G) return;
+            Object.keys(G).forEach((p) => {
+                const o = document.createElement('option');
+                o.value = p; o.textContent = p; provSel.appendChild(o);
+            });
+            provSel.addEventListener('change', () => {
+                citySel.innerHTML = '';
+                const list = G[provSel.value] || [];
+                const ph = document.createElement('option');
+                ph.value = ''; ph.textContent = list.length ? '（选择城市）' : '—';
+                citySel.appendChild(ph);
+                list.forEach((c) => {
+                    const o = document.createElement('option');
+                    o.value = c[1]; o.textContent = c[0]; citySel.appendChild(o);
+                });
+            });
+            citySel.addEventListener('change', () => {
+                if (citySel.value !== '') lonEl.value = Number(citySel.value).toFixed(2);
+            });
+        })();
+
+        function esc(s) {
+            return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        }
+
+        function barRow(label, value, pct, cls, color) {
+            const w = Math.max(0, Math.min(100, pct));
+            return '<div class="bar-row">' +
+                '<span class="name ' + cls + '">' + label + '</span>' +
+                '<span class="val">' + value.toFixed(1) + '</span>' +
+                '<span class="val">' + pct.toFixed(1) + '%</span>' +
+                '<span class="bar-track"><span class="bar-fill" style="width:' + w + '%;background:' + color + '"></span></span>' +
+                '</div>';
+        }
+
+        const PILLAR_NAMES = ['年', '月', '日', '时'];
+
+        // 地支五行 = 其本气藏干的五行
+        function zhiWx(zhi) { return Bazi.P.GAN_WUXING[Bazi.P.ZHI_CANGGAN[zhi][0][0]]; }
+
+        function pillarHtml(idx, gan, zhi, isDay, useSishi, badges) {
+            const gcls = WX_CLASS[Bazi.P.GAN_WUXING[gan]] || '';
+            const zcls = WX_CLASS[zhiWx(zhi)] || '';
+            const cang = Bazi.cangganOf(zhi, idx === 1, useSishi).map((gw) =>
+                '<span class="' + (WX_CLASS[Bazi.P.GAN_WUXING[gw[0]]] || '') + '">' + esc(gw[0]) +
+                '<i class="w">' + Math.round(gw[1]) + '</i></span>').join('');
+            const rel = (badges && badges.length)
+                ? '<div class="p4rel">' + badges.map((b) => '<span>' + esc(b) + '</span>').join('') + '</div>' : '';
+            return '<div class="p4col' + (isDay ? ' day' : '') + '">' +
+                '<div class="p4name">' + PILLAR_NAMES[idx] + '柱</div>' +
+                '<div class="p4gan ' + gcls + '">' + esc(gan) + '</div>' +
+                '<div class="p4zhi ' + zcls + '">' + esc(zhi) + '</div>' +
+                '<div class="p4cang">' + cang + '</div>' + rel +
+                '</div>';
+        }
+
+        // 每柱参与的关系徽章（如"冲申·隔柱"）
+        function relBadgesFor(pillars, L4) {
+            const map = [[], [], [], []];
+            if (!L4) return map;
+            L4.relations.forEach((r) => {
+                r.idx.forEach((i) => {
+                    const other = r.idx.filter((x) => x !== i)
+                        .map((x) => (r.type.indexOf('天干') >= 0 ? pillars[x][0] : pillars[x][1])).join('');
+                    map[i].push(r.kind + other + '·' + r.distLevel);
+                });
+            });
+            return map;
+        }
+
+        // 关系清单（按 冲/合/刑/害/破 分组）
+        function relsHtml(L4) {
+            const order = ['冲', '合', '刑', '害', '破'];
+            let h = '';
+            order.forEach((k) => {
+                const rs = L4.relations.filter((r) => r.kind === k);
+                if (!rs.length) return;
+                h += '<div class="rel-group"><div class="rel-kind">' + k + '（' + rs.length + '）</div>';
+                rs.forEach((r) => {
+                    let x = '<span class="d">· ' + r.distLevel + ' · ' + r.gongwei.join('-') + '</span>';
+                    if (r.hua) {
+                        const cls = (r.hua.hua === '不化') ? 'hx' : 'ok';
+                        x += ' <span class="' + cls + '">→ ' + r.hua.hua +
+                            (r.hua.hua === '不化' ? '（' + r.hua.fails.join('、') + '）' : '') + '</span>';
+                    } else if (r.ju) {
+                        x += ' <span class="d">【' + r.ju + '】</span>';
+                    }
+                    h += '<div class="rel-item">' + esc(r.label) + ' ' + x + '</div>';
+                });
+                h += '</div>';
+            });
+            return h || '<div class="rel-item d">此四柱无明显刑冲合害关系</div>';
+        }
+
+        // 宫位 / 读象表
+        function gongweiHtml(st) {
+            const day = st.L0.dayGan;
+            let h = '<table class="gw-table"><tr><th>柱</th><th>干支</th><th>十神</th><th>宫位</th><th>六亲</th><th>身体</th><th>时段</th></tr>';
+            st.L4.gongwei.forEach((g) => {
+                h += '<tr><td>' + g.pillar + '</td><td>' + esc(g.char) + '</td><td>' + esc(Bazi.shiShen(day, g.char[0])) +
+                    '</td><td>' + esc(g.gong) + '</td><td>' + esc(g.qin) + '</td><td>' + esc(g.body) + '</td><td>' + esc(g.span) + '</td></tr>';
+            });
+            return h + '</table>';
+        }
+
+        // L5 五角相生环 SVG（节点半径∝力量；生边线宽∝流量，断=灰虚线；克线通关绿/相战红）
+        function ringSvg(L5) {
+            const cx = 125, cy = 125, R = 70;
+            const ring = Bazi.WUXING_RING; // ['木','火','土','金','水']
+            const pt = {};
+            ring.forEach((e, i) => {
+                const a = (-90 + i * 72) * Math.PI / 180;
+                pt[e] = [cx + R * Math.cos(a), cy + R * Math.sin(a)];
+            });
+            const maxV = Math.max.apply(null, ring.map((e) => L5.nodes[e].val)) || 1;
+            const maxFlow = Math.max.apply(null, L5.sheng.map((s) => s.flow)) || 1;
+            const L = (x1, y1, x2, y2) => 'x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) +
+                '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"';
+            let g = '';
+
+            // 内层：克线（通关=绿虚线 / 相战=红实线）
+            L5.ke.forEach((k) => {
+                const p1 = pt[k.from], p2 = pt[k.to];
+                g += '<line ' + L(p1[0], p1[1], p2[0], p2[1]) + ' stroke="' +
+                    (k.through ? TONG_GREEN : ZHAN_RED) + '" stroke-width="1.4"' +
+                    (k.through ? ' stroke-dasharray="4 3"' : '') + '/>';
+            });
+            // 外层：生边（通=实线/取母色，线宽∝流量；断=灰虚线）
+            L5.sheng.forEach((s) => {
+                const p1 = pt[s.from], p2 = pt[s.to];
+                const w = 1.2 + 3.8 * (s.flow / maxFlow);
+                if (s.state === '断') {
+                    g += '<line ' + L(p1[0], p1[1], p2[0], p2[1]) +
+                        ' stroke="#bbb" stroke-width="' + w.toFixed(1) + '" stroke-dasharray="5 4"/>';
+                } else {
+                    g += '<line ' + L(p1[0], p1[1], p2[0], p2[1]) +
+                        ' stroke="' + WX_HEX[s.from] + '" stroke-width="' + w.toFixed(1) + '"/>';
+                }
+            });
+            // 节点 + 标签
+            ring.forEach((e) => {
+                const p = pt[e], val = L5.nodes[e].val;
+                const r = 5 + 15 * Math.sqrt(val / maxV);
+                g += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + r.toFixed(1) +
+                    '" fill="' + WX_HEX[e] + '" opacity="0.85"/>';
+                const lx = cx + (R + 26) * (p[0] - cx) / R, ly = cy + (R + 26) * (p[1] - cy) / R;
+                g += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 3).toFixed(1) +
+                    '" text-anchor="middle" font-size="9" fill="' + WX_HEX[e] + '">' +
+                    e + ' ' + val.toFixed(0) + '</text>';
+            });
+            // 圆心：流通分
+            const scCol = L5.score >= 80 ? TONG_GREEN : (L5.score >= 40 ? '#c98a16' : ZHAN_RED);
+            g += '<text x="' + cx + '" y="' + (cy - 1) + '" text-anchor="middle" font-size="22" font-weight="700" fill="' + scCol + '">' + L5.score + '</text>';
+            g += '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" font-size="8.5" fill="#7a6a5c">流通分</text>';
+
+            return '<svg viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">' + g + '</svg>';
+        }
+
+        function flowHtml(st) {
+            const L5 = st.L5;
+            if (!L5) return '';
+            let h = '<h3 class="section">流通 <span class="layer-tag">L5 · 基准 ' + L5.base +
+                ' · 相生环 ' + L5.tongCount + '/5 通畅 · 通关 ' + L5.tongguanCount + '/5</span></h3>';
+            h += '<div class="ring-wrap">' + ringSvg(L5) + '</div>';
+            h += '<div class="ring-legend">' +
+                '<span><i style="background:#4a8f4a"></i>生边·通</span>' +
+                '<span><i style="background:#bbb"></i>断链</span>' +
+                '<span><i style="background:' + TONG_GREEN + '"></i>通关</span>' +
+                '<span><i style="background:' + ZHAN_RED + '"></i>相战</span></div>';
+
+            let items = '';
+            L5.broken.forEach((s) => {
+                const weakEnd = L5.nodes[s.from].weak ? s.from : s.to;
+                items += '<div class="flow-list"><span class="b">✕ ' + s.from + '→' + s.to + '</span> 断：' + weakEnd + '过弱</div>';
+            });
+            L5.xiangzhan.forEach((k) => {
+                items += '<div class="flow-list"><span class="b">⚔ ' + k.from + '克' + k.to + '</span> 相战（无' + k.via + '通关）</div>';
+            });
+            L5.tongguan.forEach((k) => {
+                items += '<div class="flow-list"><span class="ok">✓ ' + k.from + '克' + k.to + '</span> 有' + k.via + '通关</div>';
+            });
+            if (items) h += '<div style="margin-top:6px">' + items + '</div>';
+            return h;
+        }
+
+        function render(pp, st, view) {
+            const day = st.L0.dayGan, monthZhi = st.L0.monthZhi;
+            const yy = Bazi.P.GAN_YINYANG[day], wx = Bazi.P.GAN_WUXING[day];
+            const vals = st[view];                  // L2 / L3 / L4 的数值快照
+            const monthSishi = (view === 'L3') || (view === 'L4' && st.L4.base === 'L3');
+            const modeName = monthSishi ? '三命通会司事表' : '渊海子平长生版';
+            const badges = relBadgesFor(pp.pillars, st.L4);
+
+            let h = '';
+            h += '<div class="pillars4">';
+            pp.pillars.forEach((p, i) => { h += pillarHtml(i, p[0], p[1], i === 2, monthSishi, badges[i]); });
+            h += '</div>';
+            h += '<div class="meta">日主 ' + day + '（' + yy + wx + '）　月令 ' + monthZhi + '　' + esc(pp.lunarStr) + '</div>';
+            if (pp.note) h += '<div class="meta">' + esc(pp.note) + '</div>';
+
+            if (pp.siling) {
+                const sl = pp.siling;
+                const slWx = Bazi.P.GAN_WUXING[sl.gan];
+                h += '<div class="siling">司令：<b>' + sl.gan + '</b>（' + esc(sl.jie) + '后 ' +
+                    sl.days.toFixed(1) + ' 日当令，' + slWx + '）</div>';
+            }
+
+            // 刑冲合害（L4）：常显，标注关系 / 合化判定 / 宫位
+            if (st.L4) {
+                h += '<h3 class="section">刑冲合害 <span class="layer-tag">L4 · ' +
+                    (st.L4.apply ? '参与修正（基准 ' + st.L4.base + '）' : '仅标注') + '</span></h3>';
+                h += relsHtml(st.L4);
+                h += '<div class="rel-kind" style="margin-top:10px">宫位 / 读象</div>';
+                h += gongweiHtml(st);
+            }
+
+            // 五行（占比 = 占五行总和，五项相加 = 100%）
+            h += '<h3 class="section">五行力量 <span class="layer-tag">' + view + ' · ' + modeName + '</span></h3>';
+            WUXING_ORDER.slice().sort((a, b) => vals.pct[b] - vals.pct[a]).forEach((e) => {
+                h += barRow(e, vals.final[e], vals.pct[e], WX_CLASS[e], WX_COLOR[e]);
+            });
+
+            // 十神（占比 = 占十神总和）；恒按固定顺序列全部 10 个，缺者显示 0
+            h += '<h3 class="section">十神力量 <span class="layer-tag">' + view + '</span></h3>';
+            const entries = Bazi.P.SHISHEN_ORDER.map((k) => [k, vals.shen[k] || 0]);
+            const stot = entries.reduce((a, x) => a + x[1], 0) || 1;
+            entries.forEach((e) => {
+                h += barRow(e[0], e[1], e[1] / stot * 100, '', 'var(--jin)');
+            });
+
+            // 流通（L5）：相生环 + 断链/通关，恒显（不随数值层级切换）
+            h += flowHtml(st);
+
+            resultEl.className = '';
+            resultEl.innerHTML = h;
+
+            const bad = Bazi.selfCheck(monthSishi);
+            footEl.innerHTML = '当前层：' + view + '（月支组成：' + modeName + '）　L4：' +
+                (st.L4 && st.L4.apply ? '参与修正' : '仅标注') + '　自检(本气最旺)：' +
+                (bad.length ? '✗ ' + esc(bad.join('；')) : '✓ 通过') +
+                '<br>各层数值独立保留，可切换查看；定量是"建模"非"真理"，参数可调。';
+        }
+
+        function calc() {
+            const dv = dateEl.value, tv = timeEl.value;
+            if (!dv || !tv) { resultEl.className = 'placeholder'; resultEl.textContent = '请填写出生日期与时间'; return; }
+            const [y, mo, d] = dv.split('-').map(Number);
+            const [hh, mi] = tv.split(':').map(Number);
+            const sect = Number(sectEl.value) || 2;
+            const lonRaw = lonEl.value.trim();
+            const lon = lonRaw === '' ? null : Number(lonRaw);
+            const useSishi = sishiEl.checked;
+            const l4Apply = l4El.checked;
+
+            let pp;
+            try { pp = Bazi.paipan(y, mo, d, hh, mi, sect, lon); }
+            catch (err) { resultEl.className = 'placeholder'; resultEl.textContent = '排盘出错：' + err.message; return; }
+            const st = Bazi.run(pp.pillars, { useSishi: useSishi, l4Apply: l4Apply });
+            window.__last = { pp: pp, st: st };
+            viewLayer = Bazi.activeLayerName(st);   // 默认看最深启用层
+            updateLayerBtns();
+            render(pp, st, viewLayer);
+        }
+
+        $('btn-calc').addEventListener('click', calc);
+        $('btn-now').addEventListener('click', () => {
+            const n = new Date();
+            dateEl.value = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+            timeEl.value = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+            calc();
+        });
+        // 切层：只重绘，不重算（各层数值已在 state 里）
+        layerSeg.addEventListener('click', (e) => {
+            const b = e.target.closest('.seg-btn'); if (!b || b.disabled) return;
+            viewLayer = b.dataset.layer; updateLayerBtns();
+            if (window.__last) render(window.__last.pp, window.__last.st, viewLayer);
+        });
+        // 切换司令开关：重算 + 重建层级
+        sishiEl.addEventListener('change', () => { if (window.__last) calc(); });
+        // 切换 L4 修正开关：重算 + 重建层级
+        l4El.addEventListener('change', () => { if (window.__last) calc(); });
+
+        // 启动时若已填入日期，先算一次
+        calc();
+    })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    </script>
+</body>
+</html>
